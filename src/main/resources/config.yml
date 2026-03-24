@@ -104,6 +104,26 @@ max-chunk-nbt-bytes: 1500000
 # Default: 9 (enough for normal use, but prevents book-stuffing)
 max-books-per-container: 9
 
+# ---- Unicode / Resource Pack Character Protection ----
+# Prevents players from using Private Use Area (PUA) Unicode characters
+# These are characters used by resource packs for custom textures/fonts
+# Players should NOT be able to type or use these in chat, items, signs, books, etc.
+
+# Enable Unicode/PUA character protection
+unicode-protection: true
+
+# Kick player after X strikes of unicode abuse
+kick-on-unicode-abuse: true
+
+# Maximum strikes before kick (resets on kick or quit)
+unicode-max-strikes-before-kick: 2
+
+# Warning message when PUA characters are detected
+unicode-warn-message: "&c&l[NBTShield] &eIllegal characters detected. Do not use resource pack characters."
+
+# Kick message for unicode abuse
+unicode-kick-message: "&c&l[NBTShield] &eYou have been kicked for abusing resource pack characters."
+
 # ---- Scanning ----
 
 # Periodic inventory scan for ALL online players (catches externally-imported items)

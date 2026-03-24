@@ -5,6 +5,7 @@ import com.nbtshield.listeners.CommandExploitListener;
 import com.nbtshield.listeners.ChunkListener;
 import com.nbtshield.listeners.EntityListener;
 import com.nbtshield.listeners.ItemListener;
+import com.nbtshield.listeners.UnicodeExploitListener;
 import com.nbtshield.network.PacketProtection;
 import com.nbtshield.utils.NBTChecker;
 import org.bukkit.Bukkit;
@@ -21,6 +22,7 @@ public class NBTShield extends JavaPlugin {
 
     private static NBTShield instance;
     private NBTChecker nbtChecker;
+    private UnicodeExploitListener unicodeListener;
 
     // Track player strikes: playerUUID -> list of timestamps
     private final Map<UUID, List<Long>> playerStrikes = new ConcurrentHashMap<>();
@@ -38,6 +40,8 @@ public class NBTShield extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new BookListener(this), this);
         Bukkit.getPluginManager().registerEvents(new EntityListener(this), this);
         Bukkit.getPluginManager().registerEvents(new CommandExploitListener(this), this);
+        unicodeListener = new UnicodeExploitListener(this);
+        Bukkit.getPluginManager().registerEvents(unicodeListener, this);
 
         // Inject packet protection for already-online players (in case of reload)
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -55,7 +59,7 @@ public class NBTShield extends JavaPlugin {
 
         getLogger().info("==============================================");
         getLogger().info("NBTShield v2.0 enabled");
-        getLogger().info("Protections: NBT, Books, Signs, Entities, Packets, OP Exploits");
+        getLogger().info("Protections: NBT, Books, Signs, Entities, Packets, OP Exploits, Unicode/PUA");
         getLogger().info("==============================================");
     }
 
@@ -178,6 +182,10 @@ public class NBTShield extends JavaPlugin {
             if (getConfig().getBoolean("command-exploit-protection", true)) {
                 removed += new com.nbtshield.listeners.CommandExploitListener(this)
                         .scanInventoryForExploits(p);
+            }
+            // Also scan for illegal Unicode items
+            if (unicodeListener != null) {
+                removed += unicodeListener.scanInventoryForIllegalUnicode(p);
             }
         }
     }
