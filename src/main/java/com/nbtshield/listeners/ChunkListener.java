@@ -84,6 +84,9 @@ public class ChunkListener implements Listener {
 
             // Enforce total chunk NBT limit (prevents accumulation of many small items)
             checker.enforceChunkNbtLimit(chunk);
+
+            // Scan item frames for PUA/Unicode abuse
+            UnicodeExploitListener.scanChunkItemFrames(plugin, chunk);
         }, 1L);
     }
 

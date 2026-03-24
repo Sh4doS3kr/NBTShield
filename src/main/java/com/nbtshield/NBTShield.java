@@ -188,6 +188,10 @@ public class NBTShield extends JavaPlugin {
                 removed += unicodeListener.scanInventoryForIllegalUnicode(p);
             }
         }
+        // Also scan all item frames in loaded chunks for PUA items
+        if (unicodeListener != null) {
+            unicodeListener.scanAllItemFrames();
+        }
     }
 
     public NBTChecker getNbtChecker() {
