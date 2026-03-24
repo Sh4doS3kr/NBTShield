@@ -88,6 +88,22 @@ kick-on-op-exploit: true
 # Kick message for OP exploit attempts
 op-exploit-kick-message: "&c&l[NBTShield] &eYou have been kicked for attempting a command exploit."
 
+# ---- Chunk NBT Limit ----
+# Prevents accumulation of many small items (e.g. books) that together exceed the chunk packet limit
+# The Minecraft chunk packet limit is ~2MB (2,097,152 bytes)
+
+# Enable total chunk NBT size enforcement
+chunk-nbt-limit: true
+
+# Maximum total NBT data in a single chunk (all containers + entities combined)
+# Default: 1500000 (1.5MB) - safely under the 2MB protocol limit
+max-chunk-nbt-bytes: 1500000
+
+# Maximum number of books allowed in a single container (shulker, chest, etc.)
+# Prevents filling containers with many small but valid books to accumulate data
+# Default: 9 (enough for normal use, but prevents book-stuffing)
+max-books-per-container: 9
+
 # ---- Scanning ----
 
 # Scan chunks on load for oversized tile entities

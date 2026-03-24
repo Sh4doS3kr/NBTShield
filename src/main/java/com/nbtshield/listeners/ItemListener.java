@@ -3,6 +3,7 @@ package com.nbtshield.listeners;
 import com.nbtshield.NBTShield;
 import com.nbtshield.utils.NBTChecker;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Entity;
@@ -147,6 +148,7 @@ public class ItemListener implements Listener {
 
     /**
      * Prevent placing oversized containers/shulker boxes as blocks.
+     * Also prevents placing containers that would push the chunk over the NBT limit.
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
@@ -158,6 +160,31 @@ public class ItemListener implements Listener {
             event.setCancelled(true);
             player.getInventory().setItem(event.getHand(), null);
             logAndNotify(player, item);
+            return;
+        }
+
+        // Check if placing this container would push the chunk over the NBT limit
+        if (plugin.getConfig().getBoolean("chunk-nbt-limit", true)
+                && NBTChecker.isContainer(item.getType())) {
+            Chunk chunk = event.getBlock().getChunk();
+            int currentChunkSize = checker.calculateChunkNbtSize(chunk);
+            int itemSize = checker.getItemByteSize(item);
+            int maxChunkBytes = plugin.getConfig().getInt("max-chunk-nbt-bytes", 1500000);
+
+            if (itemSize > 0 && (currentChunkSize + itemSize) > maxChunkBytes) {
+                event.setCancelled(true);
+                player.sendMessage(NBTShield.colorize(
+                        "&c&l[NBTShield] &eCannot place this container here. Chunk NBT limit would be exceeded ("
+                                + (currentChunkSize / 1000) + "KB/" + (maxChunkBytes / 1000) + "KB)."));
+                if (plugin.getConfig().getBoolean("log-removals", true)) {
+                    plugin.getLogger().warning("[ChunkNBTLimit] Blocked " + player.getName()
+                            + " from placing " + item.getType() + " at " + event.getBlock().getLocation()
+                            + " (chunk NBT: " + currentChunkSize + "/" + maxChunkBytes + " bytes)");
+                }
+                plugin.notifyAdmins("&c&l[NBTShield] &eBlocked &6" + player.getName()
+                        + " &efrom placing container (chunk NBT limit)");
+                plugin.recordStrike(player.getUniqueId());
+            }
         }
     }
 

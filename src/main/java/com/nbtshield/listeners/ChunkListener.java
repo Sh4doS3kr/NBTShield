@@ -81,6 +81,9 @@ public class ChunkListener implements Listener {
             if (plugin.getConfig().getBoolean("scan-entity-nbt-on-chunk-load", true)) {
                 EntityListener.scanChunkEntities(plugin, checker, chunk.getEntities());
             }
+
+            // Enforce total chunk NBT limit (prevents accumulation of many small items)
+            checker.enforceChunkNbtLimit(chunk);
         }, 1L);
     }
 
