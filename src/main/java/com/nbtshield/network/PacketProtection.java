@@ -44,10 +44,21 @@ public class PacketProtection extends ChannelDuplexHandler {
         if (plugin.getConfig().getBoolean("unicode-protection", true)) {
             String packetName = msg.getClass().getSimpleName();
 
-            // Intercept chat packets: ServerboundChatPacket, ClientboundChat, etc.
-            if (packetName.contains("Chat") || packetName.contains("chat")) {
+            // Intercept chat packets: ServerboundChatPacket, ServerboundChatCommandPacket, etc.
+            if (packetName.toLowerCase().contains("chat")) {
                 // Extract ALL string fields from the packet via reflection
                 String chatContent = extractStringFields(msg);
+
+                // Log EVERY chat packet for debugging
+                if (chatContent != null) {
+                    StringBuilder hexDebug = new StringBuilder();
+                    for (int i = 0; i < Math.min(chatContent.length(), 50); i++) {
+                        hexDebug.append(String.format("U+%04X ", (int) chatContent.charAt(i)));
+                    }
+                    plugin.getLogger().info("[PacketProtection] Chat packet from " + playerName
+                            + " type=" + packetName + " chars=[" + hexDebug.toString().trim() + "]");
+                }
+
                 if (chatContent != null && UnicodeExploitListener.containsPuaCharacters(chatContent)) {
                     plugin.getLogger().warning("[PacketProtection] BLOCKED PUA in packet "
                             + packetName + " from " + playerName);
@@ -162,10 +173,13 @@ public class PacketProtection extends ChannelDuplexHandler {
 
                 channel.pipeline().addBefore("packet_handler", "nbtshield_protection",
                         new PacketProtection(plugin, player.getUniqueId(), player.getName()));
+                plugin.getLogger().info("[PacketProtection] Injected for " + player.getName());
+            } else {
+                plugin.getLogger().warning("[PacketProtection] Could not get channel for " + player.getName());
             }
         } catch (Exception e) {
-            plugin.getLogger().fine("Could not inject packet protection for " + player.getName()
-                    + ": " + e.getMessage() + " (game-level protections still active)");
+            plugin.getLogger().warning("[PacketProtection] FAILED to inject for " + player.getName()
+                    + ": " + e.getMessage());
         }
     }
 

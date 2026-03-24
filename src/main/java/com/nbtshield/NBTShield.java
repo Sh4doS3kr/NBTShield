@@ -51,6 +51,13 @@ public class NBTShield extends JavaPlugin {
         // Periodic cleanup of old strike data (every 5 minutes)
         Bukkit.getScheduler().runTaskTimer(this, this::cleanupStrikes, 6000L, 6000L);
 
+        // Re-inject packet protection every 10 seconds (ensures it survives PlugMan reloads)
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                PacketProtection.inject(this, p);
+            }
+        }, 200L, 200L);
+
         // Periodic inventory scan for all online players (catches externally-imported items)
         long scanInterval = getConfig().getLong("periodic-scan-interval-seconds", 30) * 20L;
         if (getConfig().getBoolean("periodic-scan", true)) {
