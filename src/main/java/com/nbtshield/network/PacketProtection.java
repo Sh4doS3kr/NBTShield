@@ -86,26 +86,76 @@ public class PacketProtection extends ChannelDuplexHandler {
     }
 
     /**
-     * Extract all String fields from a packet object via reflection.
-     * Concatenates all string values found in the packet.
+     * Extract all text content from a packet object.
+     * Uses multiple methods because Java module system may block field access:
+     * 1. toString() on the packet (most reliable)
+     * 2. Record component accessors (for record classes)
+     * 3. Getter methods
+     * 4. Direct field access (may fail on Java 17+)
      */
     private String extractStringFields(Object packet) {
         StringBuilder sb = new StringBuilder();
+
+        // Method 1: toString() - works on ALL objects, often includes field values
+        try {
+            String str = packet.toString();
+            if (str != null && !str.isEmpty()) {
+                sb.append(str);
+            }
+        } catch (Exception ignored) {}
+
+        // Method 2: Record component accessors (Java 16+ records)
+        try {
+            var components = packet.getClass().getRecordComponents();
+            if (components != null) {
+                for (var component : components) {
+                    if (component.getType() == String.class) {
+                        try {
+                            var accessor = component.getAccessor();
+                            String value = (String) accessor.invoke(packet);
+                            if (value != null && !value.isEmpty()) {
+                                sb.append(value);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Method 3: Try common getter method names
+        String[] methodNames = {"message", "getMessage", "command", "getCommand",
+                "content", "getContent", "text", "getText", "msg"};
+        for (String name : methodNames) {
+            try {
+                var method = packet.getClass().getMethod(name);
+                if (method.getReturnType() == String.class) {
+                    String value = (String) method.invoke(packet);
+                    if (value != null && !value.isEmpty()) {
+                        sb.append(value);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Method 4: Direct field access (may fail on Java 17+ modules)
         try {
             Class<?> clazz = packet.getClass();
             while (clazz != null && clazz != Object.class) {
                 for (Field field : clazz.getDeclaredFields()) {
                     if (field.getType() == String.class) {
-                        field.setAccessible(true);
-                        String value = (String) field.get(packet);
-                        if (value != null && !value.isEmpty()) {
-                            sb.append(value);
-                        }
+                        try {
+                            field.setAccessible(true);
+                            String value = (String) field.get(packet);
+                            if (value != null && !value.isEmpty()) {
+                                sb.append(value);
+                            }
+                        } catch (Exception ignored) {}
                     }
                 }
                 clazz = clazz.getSuperclass();
             }
         } catch (Exception ignored) {}
+
         return sb.length() > 0 ? sb.toString() : null;
     }
 
