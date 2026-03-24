@@ -1,0 +1,110 @@
+# ======================================================
+# NBTShield Configuration v2.0
+# Comprehensive protection against all NBT/packet exploits and chunk banning
+# ======================================================
+
+# ---- General NBT Size Limits ----
+
+# Maximum allowed NBT data size in bytes for a single item stack
+# Default: 262144 (256KB) - Protocol max is 8388608 (8MB)
+max-item-nbt-bytes: 262144
+
+# Maximum allowed total NBT size for a shulker box (including contents)
+# Default: 500000 (500KB)
+max-shulker-nbt-bytes: 500000
+
+# Maximum allowed total NBT size for any container block (chests, barrels, hoppers, etc.)
+# Default: 500000 (500KB)
+max-container-nbt-bytes: 500000
+
+# ---- Book Protection ----
+# Prevents "Tried to read NBT tag that was too big" and payload exploits
+
+# Enable book exploit protection
+book-protection: true
+
+# Maximum number of pages allowed in a book
+max-book-pages: 100
+
+# Maximum characters per page
+max-book-page-length: 320
+
+# Maximum total book size in bytes (serialized)
+# Default: 32000 (vanilla payload limit is 32767)
+max-book-bytes: 32000
+
+# ---- Sign Protection ----
+# Prevents oversized sign data exploits
+
+sign-protection: true
+
+# Maximum characters per sign line
+max-sign-line-length: 384
+
+# ---- Entity Protection ----
+# Prevents NBT exploits via item frames, armor stands, etc.
+
+entity-protection: true
+
+# Scan entities in chunks on load (item frames, armor stands, etc.)
+scan-entity-nbt-on-chunk-load: true
+
+# ---- Packet / Network Protection ----
+# Prevents: PacketTooLarge, VarInt too big, VarLong too big,
+# badly compressed packets, connection timeouts, etc.
+
+# Enable Netty pipeline injection for packet-level protection
+packet-protection: true
+
+# Maximum allowed outbound packet size in bytes before it gets dropped
+# Default: 8000000 (just under the 8388608 protocol limit)
+max-outbound-packet-bytes: 8000000
+
+# Maximum allowed inbound packet size in bytes
+# Default: 2000000 (just under the 2097152 NBT read limit)
+max-inbound-packet-bytes: 2000000
+
+# Maximum allowed custom payload (plugin channel) size
+# Default: 1000000 (under the 1048576 limit)
+max-payload-bytes: 1000000
+
+# Kick players sending malformed packets (VarInt/VarLong exploits)
+kick-on-malformed-packet: true
+
+# ---- Scanning ----
+
+# Scan chunks on load for oversized tile entities
+scan-chunks-on-load: true
+
+# Scan player inventory on join
+scan-on-join: true
+
+# Scan player inventory on any inventory interaction
+scan-on-inventory-click: true
+
+# Remove oversized items as dropped entities
+scan-dropped-items: true
+
+# Scan creative mode inventory actions
+scan-creative-actions: true
+
+# ---- Logging & Notifications ----
+
+# Log removals to console
+log-removals: true
+
+# Notify admins when an oversized item is detected
+notify-admins: true
+
+# Message sent to the player when an illegal item is removed
+player-message: "&c&l[NBTShield] &eAn illegal oversized item was removed from your inventory."
+
+# Message sent to admins
+admin-message: "&c&l[NBTShield] &eRemoved oversized item from &6{player} &e(Size: &c{size}&e bytes)"
+
+# ---- Strike System ----
+# If a player triggers more than X times in Y seconds, clear ALL illegal items
+
+strike-threshold: 3
+strike-window-seconds: 60
+strike-action-message: "&c&l[NBTShield] &eAll shulker boxes and illegal items have been removed from your inventory due to repeated violations."

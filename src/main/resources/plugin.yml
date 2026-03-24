@@ -1,0 +1,19 @@
+name: NBTShield
+version: ${project.version}
+main: com.nbtshield.NBTShield
+api-version: '1.21'
+description: Comprehensive protection against all NBT/packet exploits and chunk banning
+author: NBTShield
+commands:
+  nbtshield:
+    description: NBTShield admin commands
+    usage: /nbtshield <reload|scan>
+    permission: nbtshield.admin
+    aliases: [nbs]
+permissions:
+  nbtshield.admin:
+    description: Access to NBTShield admin commands
+    default: op
+  nbtshield.bypass:
+    description: Bypass NBTShield checks (NOT recommended)
+    default: false

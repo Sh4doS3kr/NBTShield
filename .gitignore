@@ -1,0 +1,28 @@
+# Build output
+target/
+build/
+out/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Gradle
+.gradle/
+gradle/
+
+# Maven
+dependency-reduced-pom.xml
+
+# Logs
+*.log
