@@ -112,17 +112,11 @@ max-books-per-container: 9
 # Enable Unicode/PUA character protection
 unicode-protection: true
 
-# Kick player after X strikes of unicode abuse
+# KICK INSTANTLY when a player uses PUA/texture characters
 kick-on-unicode-abuse: true
 
-# Maximum strikes before kick (resets on kick or quit)
-unicode-max-strikes-before-kick: 2
-
-# Warning message when PUA characters are detected
-unicode-warn-message: "&c&l[NBTShield] &eIllegal characters detected. Do not use resource pack characters."
-
 # Kick message for unicode abuse
-unicode-kick-message: "&c&l[NBTShield] &eYou have been kicked for abusing resource pack characters."
+unicode-kick-message: "&c&l[NBTShield] &eYou have been kicked for using resource pack characters."
 
 # ---- Scanning ----
 
