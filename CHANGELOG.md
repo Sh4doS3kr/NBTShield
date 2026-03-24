@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-03-24
+
+### Added
+
+- **OP Exploit Protection** — New `CommandExploitListener` that detects and blocks command injection exploits:
+  - Scans book pages for malicious JSON `ClickEvent` with `run_command` / `suggest_command`
+  - Scans item display names and lore for embedded dangerous commands
+  - Scans lectern books for malicious content
+  - Detects 30+ dangerous commands: `/op`, `/deop`, `/stop`, `/ban`, `/lp`, `/pex`, `/execute`, `/give @`, etc.
+  - Detects obfuscated command variants
+  - Auto-kicks players attempting critical OP/permission exploits (configurable)
+  - Sends high-priority `CRITICAL` alerts to admins for OP-related attempts
+- **Command Block Protection** — Blocks unauthorized command block, chain command block, repeating command block, structure block, and jigsaw block placement
+- **New permission** `nbtshield.commandblock` — Required to place command/structure blocks (default: OP)
+- **New config options**: `command-exploit-protection`, `command-block-protection`, `kick-on-op-exploit`, `op-exploit-kick-message`
+- Scans items on pickup for malicious command data
+- Scans dispensers to prevent command block dispensing
+
+---
+
 ## [2.0.0] - 2026-03-24
 
 ### Added

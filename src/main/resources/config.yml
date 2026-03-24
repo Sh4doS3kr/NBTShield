@@ -71,6 +71,23 @@ max-payload-bytes: 1000000
 # Kick players sending malformed packets (VarInt/VarLong exploits)
 kick-on-malformed-packet: true
 
+# ---- Command / OP Exploit Protection ----
+# Prevents: ClickEvent command injection in books, items, signs, lecterns
+# Detects: /op, /deop, /stop, /ban, /lp, /pex, run_command JSON, and more
+
+# Enable command exploit scanning (books, items, lore, names)
+command-exploit-protection: true
+
+# Block command block placement for non-authorized players
+# Requires permission: nbtshield.commandblock
+command-block-protection: true
+
+# Kick players who attempt OP/permission exploits
+kick-on-op-exploit: true
+
+# Kick message for OP exploit attempts
+op-exploit-kick-message: "&c&l[NBTShield] &eYou have been kicked for attempting a command exploit."
+
 # ---- Scanning ----
 
 # Scan chunks on load for oversized tile entities

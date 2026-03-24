@@ -1,6 +1,7 @@
 package com.nbtshield;
 
 import com.nbtshield.listeners.BookListener;
+import com.nbtshield.listeners.CommandExploitListener;
 import com.nbtshield.listeners.ChunkListener;
 import com.nbtshield.listeners.EntityListener;
 import com.nbtshield.listeners.ItemListener;
@@ -36,6 +37,7 @@ public class NBTShield extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new ChunkListener(this), this);
         Bukkit.getPluginManager().registerEvents(new BookListener(this), this);
         Bukkit.getPluginManager().registerEvents(new EntityListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new CommandExploitListener(this), this);
 
         // Inject packet protection for already-online players (in case of reload)
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -47,7 +49,7 @@ public class NBTShield extends JavaPlugin {
 
         getLogger().info("==============================================");
         getLogger().info("NBTShield v2.0 enabled");
-        getLogger().info("Protections: NBT, Books, Signs, Entities, Packets");
+        getLogger().info("Protections: NBT, Books, Signs, Entities, Packets, OP Exploits");
         getLogger().info("==============================================");
     }
 

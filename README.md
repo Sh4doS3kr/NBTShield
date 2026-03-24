@@ -39,6 +39,8 @@ Malicious players can crash your server or permanently ban players from chunks b
 | Entity NBT overflow | Item frames/armor stands cause chunk bans |
 | Sign text overflow | Payload size exploit |
 | Creative mode NBT injection | Arbitrary oversized items |
+| Book/item ClickEvent injection | Admin runs `/op` unknowingly — **OP exploit** |
+| Command block placement | Unauthorized command execution |
 
 **NBTShield stops ALL of them.**
 
@@ -65,7 +67,13 @@ Malicious players can crash your server or permanently ban players from chunks b
 │  ├─ Handles badly compressed / oversized packets    │
 │  └─ Graceful disconnect instead of server crash     │
 │                                                     │
-│  Layer 3: RESPONSE                                  │
+│  Layer 3: COMMAND EXPLOIT                            │
+│  ├─ Scans books/items for ClickEvent JSON injection │
+│  ├─ Detects /op, /deop, /lp, /pex and 30+ commands │
+│  ├─ Blocks command block & structure block placement│
+│  └─ Auto-kick on critical exploit attempts          │
+│                                                     │
+│  Layer 4: RESPONSE                                  │
 │  ├─ Strike system tracks repeat offenders           │
 │  ├─ Auto-removes ALL dangerous items on threshold   │
 │  ├─ Admin notifications in real-time                │
@@ -89,6 +97,10 @@ Malicious players can crash your server or permanently ban players from chunks b
 - **Strike System** — Escalating response for repeat offenders
 - **Admin Notifications** — Real-time alerts to online admins
 - **Fully Configurable** — Every limit and toggle is in `config.yml`
+- **OP Exploit Protection** — Detects ClickEvent JSON injection in books, item names, lore, and lecterns
+- **Command Block Protection** — Prevents unauthorized command block and structure block placement
+- **Auto-Kick** — Immediately kicks players attempting critical exploits (OP/permission escalation)
+- **30+ Dangerous Commands** — Detects `/op`, `/deop`, `/lp`, `/pex`, `/execute`, `run_command`, and more
 - **Lightweight** — Zero external dependencies, minimal performance impact
 - **Paper 1.21.x** — Built for modern Paper servers (1.21.4+)
 
@@ -149,7 +161,31 @@ Caught exceptions include:
 
 When caught, the connection is **closed gracefully** (no crash), the player's inventory is scanned, and admins are notified.
 
-### 5. Strike System
+### 5. Command Exploit Protection
+
+The `CommandExploitListener` scans all books, item names, lore, and lecterns for **malicious JSON ClickEvent data** that could trick admins into running dangerous commands:
+
+```
+Malicious book page:
+{"text":"Click here!","clickEvent":{"action":"run_command","value":"/op HackerName"}}
+
+→ NBTShield detects "run_command" + "/op" → Removes item → Kicks player → Alerts admins
+```
+
+**Detection covers:**
+- `run_command` / `suggest_command` JSON actions
+- 30+ dangerous commands: `/op`, `/deop`, `/stop`, `/ban`, `/lp`, `/pex`, `/execute`, `/give @`, etc.
+- Obfuscated command variants
+- Books, item display names, lore lines, lectern books
+- Command block and structure block placement (requires `nbtshield.commandblock`)
+
+**Response to critical exploits (OP/permission related):**
+1. Immediately removes all malicious items from inventory + ender chest
+2. Kicks the player (configurable)
+3. Sends high-priority alert to all admins
+4. Logs full details to console
+
+### 6. Strike System
 
 If a player triggers NBTShield protections **3 times within 60 seconds** (configurable), the plugin escalates:
 1. Removes **ALL shulker boxes** from their inventory
@@ -211,6 +247,12 @@ scan-on-inventory-click: true
 scan-dropped-items: true
 scan-creative-actions: true
 
+# ---- Command / OP Exploit Protection ----
+command-exploit-protection: true  # Scan books/items/lore for command injection
+command-block-protection: true    # Block unauthorized command block placement
+kick-on-op-exploit: true          # Auto-kick on OP/permission exploits
+op-exploit-kick-message: "&c&l[NBTShield] &eKicked for command exploit attempt."
+
 # ---- Logging ----
 log-removals: true
 notify-admins: true
@@ -246,6 +288,7 @@ strike-action-message: "&c&l[NBTShield] &eAll illegal items removed due to repea
 |---|---|---|
 | `nbtshield.admin` | Access to all `/nbs` commands + receive notifications | OP |
 | `nbtshield.bypass` | Bypass all NBTShield checks (**not recommended**) | false |
+| `nbtshield.commandblock` | Allows placing command blocks and structure blocks | OP |
 
 ---
 

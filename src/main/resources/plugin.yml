@@ -17,3 +17,6 @@ permissions:
   nbtshield.bypass:
     description: Bypass NBTShield checks (NOT recommended)
     default: false
+  nbtshield.commandblock:
+    description: Allows placing command blocks and structure blocks
+    default: op
