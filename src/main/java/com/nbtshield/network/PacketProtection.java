@@ -1,10 +1,13 @@
 package com.nbtshield.network;
 
 import com.nbtshield.NBTShield;
+import com.nbtshield.listeners.UnicodeExploitListener;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.Field;
@@ -30,6 +33,69 @@ public class PacketProtection extends ChannelDuplexHandler {
         this.plugin = plugin;
         this.playerUUID = playerUUID;
         this.playerName = playerName;
+    }
+
+    /**
+     * Intercept INCOMING packets - checks chat messages for PUA characters
+     * at the lowest possible level (before any Bukkit event fires).
+     */
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (plugin.getConfig().getBoolean("unicode-protection", true)) {
+            String packetName = msg.getClass().getSimpleName();
+
+            // Intercept chat packets: ServerboundChatPacket, ClientboundChat, etc.
+            if (packetName.contains("Chat") || packetName.contains("chat")) {
+                // Extract ALL string fields from the packet via reflection
+                String chatContent = extractStringFields(msg);
+                if (chatContent != null && UnicodeExploitListener.containsPuaCharacters(chatContent)) {
+                    plugin.getLogger().warning("[PacketProtection] BLOCKED PUA in packet "
+                            + packetName + " from " + playerName);
+
+                    // Kick the player on the main thread
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        Player player = Bukkit.getPlayer(playerUUID);
+                        if (player != null && player.isOnline()) {
+                            plugin.notifyAdmins("&c&l[NBTShield] &4KICKED &6" + playerName
+                                    + " &efor PUA characters in chat packet");
+                            String kickMsg = plugin.getConfig().getString("unicode-kick-message",
+                                    "&c&l[NBTShield] &eYou have been kicked for using resource pack characters.");
+                            player.kick(Component.text(NBTShield.colorize(kickMsg)));
+                        }
+                    });
+
+                    // DROP the packet - do NOT pass it through
+                    return;
+                }
+            }
+        }
+
+        // Pass through normally
+        super.channelRead(ctx, msg);
+    }
+
+    /**
+     * Extract all String fields from a packet object via reflection.
+     * Concatenates all string values found in the packet.
+     */
+    private String extractStringFields(Object packet) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            Class<?> clazz = packet.getClass();
+            while (clazz != null && clazz != Object.class) {
+                for (Field field : clazz.getDeclaredFields()) {
+                    if (field.getType() == String.class) {
+                        field.setAccessible(true);
+                        String value = (String) field.get(packet);
+                        if (value != null && !value.isEmpty()) {
+                            sb.append(value);
+                        }
+                    }
+                }
+                clazz = clazz.getSuperclass();
+            }
+        } catch (Exception ignored) {}
+        return sb.length() > 0 ? sb.toString() : null;
     }
 
     @Override
