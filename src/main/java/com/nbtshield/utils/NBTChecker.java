@@ -17,6 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.BundleMeta;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -71,11 +72,22 @@ public class NBTChecker {
     }
 
     /**
-     * Check if a Material is a container block (chest, barrel, hopper, dispenser, etc.).
+     * Check if a Material is a bundle.
+     */
+    public static boolean isBundle(Material material) {
+        if (material == null) return false;
+        String name = material.name();
+        return name.equals("BUNDLE")
+                || name.endsWith("_BUNDLE");
+    }
+
+    /**
+     * Check if a Material is a container block (chest, barrel, hopper, dispenser, etc.) or bundle.
      */
     public static boolean isContainer(Material material) {
         if (material == null) return false;
         if (isShulkerBox(material)) return true;
+        if (isBundle(material)) return true;
         return switch (material) {
             case CHEST, TRAPPED_CHEST, BARREL, HOPPER, DROPPER, DISPENSER -> true;
             default -> false;
@@ -120,6 +132,11 @@ public class NBTChecker {
             return BookListener.isBookOversized(plugin, this, item);
         }
 
+        // Check bundles for oversized contents and book stuffing
+        if (isBundle(item.getType())) {
+            return isBundleOversized(item);
+        }
+
         int size = getItemByteSize(item);
         if (size == -1) return true; // Can't serialize = suspicious
 
@@ -135,6 +152,43 @@ public class NBTChecker {
 
         // General item check
         return size > maxItemNbtBytes;
+    }
+
+    /**
+     * Check if a bundle has oversized contents or too many books.
+     */
+    public boolean isBundleOversized(ItemStack item) {
+        if (item == null || !isBundle(item.getType())) return false;
+        if (!(item.getItemMeta() instanceof BundleMeta bundleMeta)) return false;
+
+        List<ItemStack> contents = bundleMeta.getItems();
+        int totalSize = 0;
+        int bookCount = 0;
+
+        for (ItemStack content : contents) {
+            if (content == null || content.getType().isAir()) continue;
+
+            // Check book count inside bundle
+            if (isBook(content.getType())) {
+                bookCount += content.getAmount();
+                if (bookCount > maxBooksPerContainer) return true;
+            }
+
+            // Check if any individual item inside is oversized
+            if (isBook(content.getType()) && BookListener.isBookOversized(plugin, this, content)) {
+                return true;
+            }
+
+            int contentSize = getItemByteSize(content);
+            if (contentSize == -1) return true;
+            totalSize += contentSize;
+            if (totalSize > maxContainerNbtBytes) return true;
+        }
+
+        // Also check total bundle serialized size
+        int bundleSize = getItemByteSize(item);
+        if (bundleSize == -1) return true;
+        return bundleSize > maxContainerNbtBytes;
     }
 
     /**
