@@ -106,6 +106,14 @@ max-books-per-container: 9
 
 # ---- Scanning ----
 
+# Periodic inventory scan for ALL online players (catches externally-imported items)
+# This is critical to prevent items brought from singleplayer worlds, NBT editors, or hacked clients
+periodic-scan: true
+
+# Interval in seconds between periodic scans (lower = more secure, higher = less CPU)
+# Default: 30 seconds
+periodic-scan-interval-seconds: 30
+
 # Scan chunks on load for oversized tile entities
 scan-chunks-on-load: true
 

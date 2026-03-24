@@ -17,12 +17,15 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
 import com.nbtshield.network.PacketProtection;
@@ -144,6 +147,60 @@ public class ItemListener implements Listener {
                 }
             }
         }, 1L);
+    }
+
+    /**
+     * Scan inventory when closed — catches items imported from external sources.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        if (player.hasPermission("nbtshield.bypass")) return;
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                checker.scanAndCleanInventory(player);
+            }
+        }, 1L);
+    }
+
+    /**
+     * Check item when swapping hands (offhand swap).
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onSwapHand(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        if (player.hasPermission("nbtshield.bypass")) return;
+
+        ItemStack mainHand = event.getMainHandItem();
+        ItemStack offHand = event.getOffHandItem();
+
+        if (mainHand != null && checker.isOversized(mainHand)) {
+            event.setCancelled(true);
+            player.getInventory().setItemInMainHand(null);
+            logAndNotify(player, mainHand);
+            return;
+        }
+        if (offHand != null && checker.isOversized(offHand)) {
+            event.setCancelled(true);
+            player.getInventory().setItemInOffHand(null);
+            logAndNotify(player, offHand);
+        }
+    }
+
+    /**
+     * Check item when player switches hotbar slot — catches items that appeared externally.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        if (player.hasPermission("nbtshield.bypass")) return;
+
+        ItemStack newItem = player.getInventory().getItem(event.getNewSlot());
+        if (newItem != null && checker.isOversized(newItem)) {
+            player.getInventory().setItem(event.getNewSlot(), null);
+            logAndNotify(player, newItem);
+        }
     }
 
     /**

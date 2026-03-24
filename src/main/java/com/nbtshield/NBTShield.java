@@ -47,6 +47,12 @@ public class NBTShield extends JavaPlugin {
         // Periodic cleanup of old strike data (every 5 minutes)
         Bukkit.getScheduler().runTaskTimer(this, this::cleanupStrikes, 6000L, 6000L);
 
+        // Periodic inventory scan for all online players (catches externally-imported items)
+        long scanInterval = getConfig().getLong("periodic-scan-interval-seconds", 30) * 20L;
+        if (getConfig().getBoolean("periodic-scan", true)) {
+            Bukkit.getScheduler().runTaskTimer(this, this::periodicScan, scanInterval, scanInterval);
+        }
+
         getLogger().info("==============================================");
         getLogger().info("NBTShield v2.0 enabled");
         getLogger().info("Protections: NBT, Books, Signs, Entities, Packets, OP Exploits");
@@ -158,6 +164,22 @@ public class NBTShield extends JavaPlugin {
             strikes.removeIf(t -> (now - t) > windowMs);
         });
         playerStrikes.entrySet().removeIf(e -> e.getValue().isEmpty());
+    }
+
+    /**
+     * Periodic scan of all online players' inventories.
+     * Catches items imported from external sources (singleplayer, NBT editors, hacked clients).
+     */
+    private void periodicScan() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.hasPermission("nbtshield.bypass")) continue;
+            int removed = nbtChecker.scanAndCleanInventory(p);
+            // Also scan for command exploit items
+            if (getConfig().getBoolean("command-exploit-protection", true)) {
+                removed += new com.nbtshield.listeners.CommandExploitListener(this)
+                        .scanInventoryForExploits(p);
+            }
+        }
     }
 
     public NBTChecker getNbtChecker() {
