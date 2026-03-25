@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
 public class NBTChecker {
@@ -34,6 +36,11 @@ public class NBTChecker {
     private final int maxContainerNbtBytes;
     private final int maxChunkNbtBytes;
     private final int maxBooksPerContainer;
+
+    // Cache for item byte sizes to avoid repeated expensive serialization
+    // Key: item hashCode, Value: [size, timestamp]
+    private final Map<Integer, long[]> sizeCache = new ConcurrentHashMap<>();
+    private static final long CACHE_TTL_MS = 5000; // 5 seconds
 
     public NBTChecker(NBTShield plugin) {
         this.plugin = plugin;
@@ -125,13 +132,28 @@ public class NBTChecker {
      */
     public int getItemByteSize(ItemStack item) {
         if (item == null || item.getType().isAir()) return 0;
+
+        // Check cache first to avoid expensive re-serialization
+        int cacheKey = item.hashCode();
+        long now = System.currentTimeMillis();
+        long[] cached = sizeCache.get(cacheKey);
+        if (cached != null && (now - cached[1]) < CACHE_TTL_MS) {
+            return (int) cached[0];
+        }
+
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              BukkitObjectOutputStream boos = new BukkitObjectOutputStream(baos)) {
             boos.writeObject(item);
             boos.flush();
-            return baos.size();
+            int size = baos.size();
+            sizeCache.put(cacheKey, new long[]{size, now});
+            // Evict old entries periodically
+            if (sizeCache.size() > 500) {
+                sizeCache.entrySet().removeIf(e -> (now - e.getValue()[1]) > CACHE_TTL_MS);
+            }
+            return size;
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to serialize item for size check: " + e.getMessage());
+            if (NBTShield.isDebug()) plugin.getLogger().warning("Failed to serialize item for size check: " + e.getMessage());
             return -1;
         }
     }
@@ -143,6 +165,12 @@ public class NBTChecker {
      */
     public boolean isOversized(ItemStack item) {
         if (item == null || item.getType().isAir()) return false;
+
+        // FAST PATH: items without meta can never be oversized (vanilla items are tiny)
+        // Exception: containers and books can have oversized CONTENTS
+        if (!item.hasItemMeta() && !isContainer(item.getType()) && !isBook(item.getType())) {
+            return false;
+        }
 
         // NEVER remove system items (items with CustomModelData = server textures)
         if (plugin.getConfig().getBoolean("skip-custom-model-data-items", true) && isSystemItem(item)) {
@@ -162,7 +190,7 @@ public class NBTChecker {
         int size = getItemByteSize(item);
         if (size == -1) {
             // Serialization failed - log but do NOT auto-delete (could be a valid system item)
-            plugin.getLogger().warning("[NBTChecker] Item failed serialization (" + item.getType() + ") - skipping, not removing");
+            if (NBTShield.isDebug()) plugin.getLogger().warning("[NBTChecker] Item failed serialization (" + item.getType() + ") - skipping, not removing");
             return false;
         }
 

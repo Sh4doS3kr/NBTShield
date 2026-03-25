@@ -35,6 +35,10 @@ public class ItemListener implements Listener {
     private final NBTShield plugin;
     private final NBTChecker checker;
 
+    // Cooldown to avoid checking the same player/container every click
+    private final java.util.Map<java.util.UUID, Long> interactCooldown = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final long INTERACT_COOLDOWN_MS = 2000; // 2 seconds
+
     public ItemListener(NBTShield plugin) {
         this.plugin = plugin;
         this.checker = plugin.getNbtChecker();
@@ -331,6 +335,17 @@ public class ItemListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         if (player.hasPermission("nbtshield.bypass")) return;
+
+        // Rate-limit: skip if this player was checked recently
+        long now = System.currentTimeMillis();
+        Long lastCheck = interactCooldown.get(player.getUniqueId());
+        if (lastCheck != null && (now - lastCheck) < INTERACT_COOLDOWN_MS) return;
+        interactCooldown.put(player.getUniqueId(), now);
+
+        // Evict old cooldown entries
+        if (interactCooldown.size() > 200) {
+            interactCooldown.entrySet().removeIf(e -> (now - e.getValue()) > INTERACT_COOLDOWN_MS * 2);
+        }
 
         // Check if interacting with a container block (shulker, chest, barrel, etc.)
         if (event.getClickedBlock() != null) {
