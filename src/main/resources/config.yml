@@ -101,8 +101,8 @@ op-exploit-kick-message: "&c&l[NBTShield] &eYou have been kicked for attempting 
 chunk-nbt-limit: true
 
 # Maximum total NBT data in a single chunk (all containers + entities combined)
-# Default: 1500000 (1.5MB) - safely under the 2MB protocol limit
-max-chunk-nbt-bytes: 1500000
+# Default: 2500000 (2.5MB)
+max-chunk-nbt-bytes: 2500000
 
 # Maximum number of books allowed in a single container (shulker, chest, etc.)
 # Prevents filling containers with many small but valid books to accumulate data
