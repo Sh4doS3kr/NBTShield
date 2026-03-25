@@ -21,7 +21,7 @@ public class PaperChatListener implements Listener {
 
     public PaperChatListener(NBTShield plugin) {
         this.plugin = plugin;
-        plugin.getLogger().info("[UnicodeProtection] Paper AsyncChatEvent listener registered");
+        plugin.getLogger().info("[UnicodeProtection] Paper AsyncChatEvent active");
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -38,21 +38,23 @@ public class PaperChatListener implements Listener {
             boolean detected = UnicodeExploitListener.containsPuaCharacters(plainOrig)
                     || UnicodeExploitListener.containsPuaCharacters(plainMsg);
 
-            // Log for debugging
-            StringBuilder hex = new StringBuilder();
-            String toLog = plainOrig.isEmpty() ? plainMsg : plainOrig;
-            for (int i = 0; i < Math.min(toLog.length(), 30); ) {
-                int cp = toLog.codePointAt(i);
-                hex.append(String.format("U+%04X ", cp));
-                i += Character.charCount(cp);
+            // Log for debugging (only when debug mode is on)
+            if (NBTShield.isDebug()) {
+                StringBuilder hex = new StringBuilder();
+                String toLog = plainOrig.isEmpty() ? plainMsg : plainOrig;
+                for (int i = 0; i < Math.min(toLog.length(), 30); ) {
+                    int cp = toLog.codePointAt(i);
+                    hex.append(String.format("U+%04X ", cp));
+                    i += Character.charCount(cp);
+                }
+                plugin.getLogger().info("[UnicodeProtection] PaperChat from " + player.getName()
+                        + " codes=[" + hex.toString().trim() + "] detected=" + detected);
             }
-            plugin.getLogger().info("[UnicodeProtection] PaperChat from " + player.getName()
-                    + " codes=[" + hex.toString().trim() + "] detected=" + detected);
 
             if (detected) {
                 event.setCancelled(true);
                 event.viewers().clear();
-                plugin.getLogger().warning("[UnicodeProtection] BLOCKED in PaperChat from " + player.getName());
+                if (NBTShield.isDebug()) plugin.getLogger().warning("[UnicodeProtection] BLOCKED in PaperChat from " + player.getName());
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (player.isOnline()) {
                         String kickMsg = plugin.getConfig().getString("unicode-kick-message",

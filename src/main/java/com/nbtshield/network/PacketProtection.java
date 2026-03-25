@@ -49,8 +49,8 @@ public class PacketProtection extends ChannelDuplexHandler {
                 // Extract ALL string fields from the packet via reflection
                 String chatContent = extractStringFields(msg);
 
-                // Log EVERY chat packet for debugging
-                if (chatContent != null) {
+                // Log chat packets only in debug mode
+                if (NBTShield.isDebug() && chatContent != null) {
                     StringBuilder hexDebug = new StringBuilder();
                     for (int i = 0; i < Math.min(chatContent.length(), 50); i++) {
                         hexDebug.append(String.format("U+%04X ", (int) chatContent.charAt(i)));
@@ -60,7 +60,7 @@ public class PacketProtection extends ChannelDuplexHandler {
                 }
 
                 if (chatContent != null && UnicodeExploitListener.containsPuaCharacters(chatContent)) {
-                    plugin.getLogger().warning("[PacketProtection] BLOCKED PUA in packet "
+                    if (NBTShield.isDebug()) plugin.getLogger().warning("[PacketProtection] BLOCKED PUA in packet "
                             + packetName + " from " + playerName);
 
                     // Kick the player on the main thread
@@ -218,12 +218,12 @@ public class PacketProtection extends ChannelDuplexHandler {
 
                 channel.pipeline().addBefore("packet_handler", "nbtshield_protection",
                         new PacketProtection(plugin, player.getUniqueId(), player.getName()));
-                plugin.getLogger().info("[PacketProtection] Injected for " + player.getName());
+                if (NBTShield.isDebug()) plugin.getLogger().info("[PacketProtection] Injected for " + player.getName());
             } else {
-                plugin.getLogger().warning("[PacketProtection] Could not get channel for " + player.getName());
+                if (NBTShield.isDebug()) plugin.getLogger().warning("[PacketProtection] Could not get channel for " + player.getName());
             }
         } catch (Exception e) {
-            plugin.getLogger().warning("[PacketProtection] FAILED to inject for " + player.getName()
+            if (NBTShield.isDebug()) plugin.getLogger().warning("[PacketProtection] FAILED to inject for " + player.getName()
                     + ": " + e.getMessage());
         }
     }

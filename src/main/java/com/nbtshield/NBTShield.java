@@ -23,6 +23,11 @@ public class NBTShield extends JavaPlugin {
     private static NBTShield instance;
     private NBTChecker nbtChecker;
     private UnicodeExploitListener unicodeListener;
+    private static boolean debugMode = false;
+
+    public static boolean isDebug() {
+        return debugMode;
+    }
 
     // Track player strikes: playerUUID -> list of timestamps
     private final Map<UUID, List<Long>> playerStrikes = new ConcurrentHashMap<>();
@@ -101,6 +106,7 @@ public class NBTShield extends JavaPlugin {
             sender.sendMessage(colorize("&6/nbs reload &7- Reload configuration"));
             sender.sendMessage(colorize("&6/nbs scan &7- Scan all online players' inventories"));
             sender.sendMessage(colorize("&6/nbs scanplayer <name> &7- Scan a specific player"));
+            sender.sendMessage(colorize("&6/nbs debug &7- Toggle debug logging"));
             return true;
         }
 
@@ -130,6 +136,10 @@ public class NBTShield extends JavaPlugin {
                 int removed = nbtChecker.scanAndCleanInventory(target);
                 sender.sendMessage(colorize("&a[NBTShield] Removed &c" + removed + " &aillegal items from &6" + target.getName()));
             }
+            case "debug" -> {
+                debugMode = !debugMode;
+                sender.sendMessage(colorize("&a[NBTShield] Debug mode: " + (debugMode ? "&aENABLED" : "&cDISABLED")));
+            }
             default -> sender.sendMessage(colorize("&cUnknown subcommand. Use /nbs for help."));
         }
         return true;
@@ -141,7 +151,7 @@ public class NBTShield extends JavaPlugin {
         if (!sender.hasPermission("nbtshield.admin")) return Collections.emptyList();
 
         if (args.length == 1) {
-            return Arrays.asList("reload", "scan", "scanplayer").stream()
+            return Arrays.asList("reload", "scan", "scanplayer", "debug").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         }
