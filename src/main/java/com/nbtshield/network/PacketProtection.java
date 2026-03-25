@@ -86,33 +86,24 @@ public class PacketProtection extends ChannelDuplexHandler {
     }
 
     /**
-     * Extract all text content from a packet object.
-     * Uses multiple methods because Java module system may block field access:
-     * 1. toString() on the packet (most reliable)
-     * 2. Record component accessors (for record classes)
-     * 3. Getter methods
-     * 4. Direct field access (may fail on Java 17+)
+     * Extract the chat message string from a packet object.
+     * Tries multiple methods in order of reliability:
+     * 1. Record component accessors (cleanest, gets just the message field)
+     * 2. Public getter methods (message(), command(), etc.)
+     * 3. Direct field access (may fail on Java 17+ modules)
+     * 4. toString() as last resort (contains all packet data)
      */
     private String extractStringFields(Object packet) {
         StringBuilder sb = new StringBuilder();
 
-        // Method 1: toString() - works on ALL objects, often includes field values
-        try {
-            String str = packet.toString();
-            if (str != null && !str.isEmpty()) {
-                sb.append(str);
-            }
-        } catch (Exception ignored) {}
-
-        // Method 2: Record component accessors (Java 16+ records)
+        // Method 1: Record component accessors (Java 16+ records - Paper uses records for packets)
         try {
             var components = packet.getClass().getRecordComponents();
             if (components != null) {
                 for (var component : components) {
                     if (component.getType() == String.class) {
                         try {
-                            var accessor = component.getAccessor();
-                            String value = (String) accessor.invoke(packet);
+                            String value = (String) component.getAccessor().invoke(packet);
                             if (value != null && !value.isEmpty()) {
                                 sb.append(value);
                             }
@@ -121,10 +112,10 @@ public class PacketProtection extends ChannelDuplexHandler {
                 }
             }
         } catch (Exception ignored) {}
+        if (sb.length() > 0) return sb.toString();
 
-        // Method 3: Try common getter method names
-        String[] methodNames = {"message", "getMessage", "command", "getCommand",
-                "content", "getContent", "text", "getText", "msg"};
+        // Method 2: Try common getter method names
+        String[] methodNames = {"message", "command", "getMessage", "getCommand"};
         for (String name : methodNames) {
             try {
                 var method = packet.getClass().getMethod(name);
@@ -136,27 +127,31 @@ public class PacketProtection extends ChannelDuplexHandler {
                 }
             } catch (Exception ignored) {}
         }
+        if (sb.length() > 0) return sb.toString();
 
-        // Method 4: Direct field access (may fail on Java 17+ modules)
+        // Method 3: Direct field access
         try {
-            Class<?> clazz = packet.getClass();
-            while (clazz != null && clazz != Object.class) {
-                for (Field field : clazz.getDeclaredFields()) {
-                    if (field.getType() == String.class) {
-                        try {
-                            field.setAccessible(true);
-                            String value = (String) field.get(packet);
-                            if (value != null && !value.isEmpty()) {
-                                sb.append(value);
-                            }
-                        } catch (Exception ignored) {}
-                    }
+            for (Field field : packet.getClass().getDeclaredFields()) {
+                if (field.getType() == String.class) {
+                    try {
+                        field.setAccessible(true);
+                        String value = (String) field.get(packet);
+                        if (value != null && !value.isEmpty()) {
+                            sb.append(value);
+                        }
+                    } catch (Exception ignored) {}
                 }
-                clazz = clazz.getSuperclass();
             }
         } catch (Exception ignored) {}
+        if (sb.length() > 0) return sb.toString();
 
-        return sb.length() > 0 ? sb.toString() : null;
+        // Method 4: Last resort - toString() (contains packet metadata too)
+        try {
+            String str = packet.toString();
+            if (str != null && !str.isEmpty()) return str;
+        } catch (Exception ignored) {}
+
+        return null;
     }
 
     @Override

@@ -43,6 +43,13 @@ public class NBTShield extends JavaPlugin {
         unicodeListener = new UnicodeExploitListener(this);
         Bukkit.getPluginManager().registerEvents(unicodeListener, this);
 
+        // Try to register Paper-specific chat listener (separate class to avoid NoClassDefFoundError)
+        try {
+            Bukkit.getPluginManager().registerEvents(new com.nbtshield.listeners.PaperChatListener(this), this);
+        } catch (Throwable t) {
+            getLogger().warning("[NBTShield] Paper AsyncChatEvent not available, using legacy chat only: " + t.getMessage());
+        }
+
         // Inject packet protection for already-online players (in case of reload)
         for (Player p : Bukkit.getOnlinePlayers()) {
             PacketProtection.inject(this, p);
