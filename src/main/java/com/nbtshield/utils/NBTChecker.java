@@ -47,7 +47,7 @@ public class NBTChecker {
         this.maxItemNbtBytes = plugin.getConfig().getInt("max-item-nbt-bytes", 262144);
         this.maxShulkerNbtBytes = plugin.getConfig().getInt("max-shulker-nbt-bytes", 500000);
         this.maxContainerNbtBytes = plugin.getConfig().getInt("max-container-nbt-bytes", 500000);
-        this.maxChunkNbtBytes = plugin.getConfig().getInt("max-chunk-nbt-bytes", 1500000);
+        this.maxChunkNbtBytes = plugin.getConfig().getInt("max-chunk-nbt-bytes", 2500000);
         this.maxBooksPerContainer = plugin.getConfig().getInt("max-books-per-container", 9);
     }
 

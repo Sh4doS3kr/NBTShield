@@ -230,7 +230,7 @@ public class ItemListener implements Listener {
             Chunk chunk = event.getBlock().getChunk();
             int currentChunkSize = checker.calculateChunkNbtSize(chunk);
             int itemSize = checker.getItemByteSize(item);
-            int maxChunkBytes = plugin.getConfig().getInt("max-chunk-nbt-bytes", 1500000);
+            int maxChunkBytes = plugin.getConfig().getInt("max-chunk-nbt-bytes", 2500000);
 
             if (itemSize > 0 && (currentChunkSize + itemSize) > maxChunkBytes) {
                 event.setCancelled(true);
