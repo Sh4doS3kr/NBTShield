@@ -17,6 +17,11 @@ max-shulker-nbt-bytes: 500000
 # Default: 500000 (500KB)
 max-container-nbt-bytes: 500000
 
+# Skip items with CustomModelData from ALL size checks and removal.
+# Items with CustomModelData are server-created (resource pack textures)
+# and should NEVER be deleted. Set to false only if you don't use a resource pack.
+skip-custom-model-data-items: true
+
 # ---- Book Protection ----
 # Prevents "Tried to read NBT tag that was too big" and payload exploits
 

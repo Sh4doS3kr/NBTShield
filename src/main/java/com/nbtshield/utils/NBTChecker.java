@@ -103,6 +103,23 @@ public class NBTChecker {
     }
 
     /**
+     * Check if an item is a system/server-created item (has custom textures).
+     * Items with CustomModelData or item_model are created by the server/resource pack
+     * and should NOT be removed by size checks.
+     */
+    public static boolean isSystemItem(ItemStack item) {
+        if (item == null || item.getType().isAir()) return false;
+        if (!item.hasItemMeta()) return false;
+        try {
+            var meta = item.getItemMeta();
+            if (meta == null) return false;
+            // CustomModelData = server-assigned texture
+            if (meta.hasCustomModelData()) return true;
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
      * Estimate the serialized byte size of an ItemStack.
      * Returns -1 if serialization fails.
      */
@@ -127,6 +144,11 @@ public class NBTChecker {
     public boolean isOversized(ItemStack item) {
         if (item == null || item.getType().isAir()) return false;
 
+        // NEVER remove system items (items with CustomModelData = server textures)
+        if (plugin.getConfig().getBoolean("skip-custom-model-data-items", true) && isSystemItem(item)) {
+            return false;
+        }
+
         // Check books using specialized book checker
         if (isBook(item.getType())) {
             return BookListener.isBookOversized(plugin, this, item);
@@ -138,7 +160,11 @@ public class NBTChecker {
         }
 
         int size = getItemByteSize(item);
-        if (size == -1) return true; // Can't serialize = suspicious
+        if (size == -1) {
+            // Serialization failed - log but do NOT auto-delete (could be a valid system item)
+            plugin.getLogger().warning("[NBTChecker] Item failed serialization (" + item.getType() + ") - skipping, not removing");
+            return false;
+        }
 
         // Shulker boxes have their own limit
         if (isShulkerBox(item.getType())) {
@@ -196,13 +222,15 @@ public class NBTChecker {
      */
     public boolean isShulkerBoxOversized(ShulkerBox shulkerBox) {
         if (shulkerBox == null) return false;
+        boolean skipSystem = plugin.getConfig().getBoolean("skip-custom-model-data-items", true);
 
         Inventory inv = shulkerBox.getInventory();
         int totalSize = 0;
         for (ItemStack item : inv.getContents()) {
             if (item == null || item.getType().isAir()) continue;
+            if (skipSystem && isSystemItem(item)) continue;
             int itemSize = getItemByteSize(item);
-            if (itemSize == -1) return true;
+            if (itemSize <= 0) continue;
             totalSize += itemSize;
             if (totalSize > maxShulkerNbtBytes) return true;
         }
@@ -214,6 +242,7 @@ public class NBTChecker {
      */
     public boolean isContainerOversized(Container container) {
         if (container == null) return false;
+        boolean skipSystem = plugin.getConfig().getBoolean("skip-custom-model-data-items", true);
 
         int limit = (container instanceof ShulkerBox) ? maxShulkerNbtBytes : maxContainerNbtBytes;
         Inventory inv = container.getInventory();
@@ -221,12 +250,13 @@ public class NBTChecker {
         int bookCount = 0;
         for (ItemStack item : inv.getContents()) {
             if (item == null || item.getType().isAir()) continue;
+            if (skipSystem && isSystemItem(item)) continue;
             if (isBook(item.getType())) {
                 bookCount += item.getAmount();
                 if (bookCount > maxBooksPerContainer) return true;
             }
             int itemSize = getItemByteSize(item);
-            if (itemSize == -1) return true;
+            if (itemSize <= 0) continue;
             totalSize += itemSize;
             if (totalSize > limit) return true;
         }
@@ -304,15 +334,24 @@ public class NBTChecker {
         if (totalSize <= maxChunkNbtBytes) return 0;
 
         // Build list of containers sorted by size (largest first)
+        // SKIP containers that hold system items (CustomModelData = server textures)
+        boolean skipSystemItems = plugin.getConfig().getBoolean("skip-custom-model-data-items", true);
         List<ContainerEntry> containers = new ArrayList<>();
         for (BlockState state : chunk.getTileEntities()) {
             if (state instanceof Container container) {
                 int containerSize = 0;
+                boolean hasSystemItem = false;
                 for (ItemStack item : container.getInventory().getContents()) {
                     if (item == null || item.getType().isAir()) continue;
+                    if (skipSystemItems && isSystemItem(item)) {
+                        hasSystemItem = true;
+                        break;
+                    }
                     int s = getItemByteSize(item);
                     if (s > 0) containerSize += s;
                 }
+                // Never destroy containers with system items
+                if (hasSystemItem) continue;
                 if (containerSize > 0) {
                     containers.add(new ContainerEntry(state, containerSize));
                 }
