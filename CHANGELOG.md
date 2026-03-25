@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2026-03-25
+
+### Added
+
+- **Whitelist Unicode Detection** — New detection system that only allows Latin characters, common symbols, and emoji in user input. Blocks Korean, CJK, PUA, Braille, zero-width, and all other non-Latin scripts
+- **System Item Protection** — Items with `CustomModelData` (server/resource pack textures) are now exempt from ALL size checks and removal
+- **New config**: `skip-custom-model-data-items: true` — Prevents deletion of server-created textured items
+- **Debug toggle**: `/nbts debug` command to enable/disable verbose logging (disabled by default)
+- **Paper AsyncChatEvent** — Separate `PaperChatListener` class for Paper-specific chat handling (fails gracefully on non-Paper servers)
+
+### Changed
+
+- **Unicode detection switched from blacklist to whitelist** — Only whitelisted characters are allowed in user input (chat, commands, signs, books, anvil renames)
+- **All debug/verbose logs gated behind `/nbts debug`** — No more console spam from chat codepoints, packet inspection, or injection messages
+
+### Fixed
+
+- **Chests with textures no longer deleted** — `enforceChunkNbtLimit()` now skips containers holding system items
+- **`isContainerOversized()` / `isShulkerBoxOversized()`** — Skip system items in size calculations
+- **Serialization failure no longer auto-deletes items** — `getItemByteSize()` returning `-1` no longer flags items as oversized
+- **PacketProtection** — Now extracts actual message field from packets instead of using `toString()`
+
+### Performance
+
+- **Fast-path for vanilla items** — Items without `ItemMeta` skip serialization entirely (~90% reduction in serialization calls)
+- **Size cache** — `getItemByteSize()` caches results for 5 seconds to avoid repeated serialization
+- **Interact cooldown** — `onPlayerInteract` rate-limited to 1 check every 2 seconds per player
+
+### Removed
+
+- Inventory scanning for Unicode characters (items in player inventory no longer deleted)
+- Item frame scanning for Unicode characters
+- Join/slot change/hand swap/inventory close Unicode scanning
+- Old detection methods: `hasIllegalUnicode()`, `objectContainsPua()`, `componentContainsPua()`
+
+---
+
 ## [2.1.0] - 2026-03-24
 
 ### Added
